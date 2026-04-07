@@ -17,7 +17,9 @@ import {
   Download,
   AlertCircle,
   TrendingUp,
-  RotateCcw
+  RotateCcw,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -134,6 +136,21 @@ export default function App() {
   const [extraPilots, setExtraPilots] = useState<number>(() => loadSaved('extraPilots'));
   const [extraCabinCrew, setExtraCabinCrew] = useState<number>(() => loadSaved('extraCabinCrew'));
   const [fuelCapacityKg, setFuelCapacityKg] = useState<number>(() => loadSaved('fuelCapacityKg'));
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('b737_wb_darkMode');
+    if (saved !== null) return saved === 'true';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Apply dark mode class
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('b737_wb_darkMode', isDarkMode.toString());
+  }, [isDarkMode]);
 
   // Save to localStorage whenever values change
   useEffect(() => {
@@ -303,9 +320,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className={`min-h-screen font-sans transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+      <header className={`border-b sticky top-0 z-20 shadow-sm transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
           <div className="flex items-center gap-3">
             <div className="bg-red-600 p-2 rounded-lg flex-shrink-0">
@@ -313,13 +330,20 @@ export default function App() {
             </div>
             <div className="min-w-0">
               <h1 className="text-base sm:text-xl font-bold tracking-tight leading-tight truncate sm:whitespace-normal">Weight And Balance B737</h1>
-              <p className="text-[10px] sm:text-xs text-slate-500 font-medium uppercase tracking-wider">Royal air Maroc</p>
+              <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Royal air Maroc</p>
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`flex items-center justify-center p-2 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+            </button>
+            <button 
               onClick={resetToDefaults}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-100 text-slate-600 px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors text-xs sm:text-sm font-medium"
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               title="Reset to factory defaults"
             >
               <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -327,7 +351,7 @@ export default function App() {
             </button>
             <button 
               onClick={exportToCSV}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors text-xs sm:text-sm font-medium"
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium ${isDarkMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
             >
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Export CSV
@@ -385,10 +409,10 @@ export default function App() {
           
           {/* Input Section */}
           <div className="lg:col-span-7 space-y-6">
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+            <section className={`rounded-2xl shadow-sm border overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`px-6 py-4 border-b flex items-center gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
                 <Calculator className="w-5 h-5 text-red-600" />
-                <h2 className="font-semibold">Operational Parameters</h2>
+                <h2 className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Operational Parameters</h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputGroup 
@@ -400,6 +424,7 @@ export default function App() {
                   description="2/4 Configuration base weight"
                   min={35000}
                   max={55000}
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Dry Operating Index (DOI)" 
@@ -409,6 +434,7 @@ export default function App() {
                   icon={<ArrowRightLeft className="w-4 h-4" />}
                   min={0}
                   max={100}
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Payload" 
@@ -418,6 +444,7 @@ export default function App() {
                   icon={<Users className="w-4 h-4" />}
                   error={!results.limitations.payloadOk}
                   errorMsg={`Max Payload: ${results.maxPayload.toFixed(0)} kg`}
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Fuel Capacity" 
@@ -426,14 +453,15 @@ export default function App() {
                   unit="kg" 
                   icon={<Fuel className="w-4 h-4" />}
                   min={1}
+                  isDarkMode={isDarkMode}
                 />
               </div>
             </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+            <section className={`rounded-2xl shadow-sm border overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`px-6 py-4 border-b flex items-center gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
                 <Fuel className="w-5 h-5 text-red-600" />
-                <h2 className="font-semibold">Fuel Planning</h2>
+                <h2 className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Fuel Planning</h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputGroup 
@@ -444,6 +472,7 @@ export default function App() {
                   error={!results.limitations.fuelOk}
                   errorMsg={`Max Fuel: ${results.flightMaxFuel.toFixed(0)} kg`}
                   description="Total fuel at brakes release"
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Trip Fuel" 
@@ -453,6 +482,7 @@ export default function App() {
                   error={!results.limitations.tripFuelOk}
                   errorMsg="Cannot exceed TOF"
                   description="Fuel required for the flight"
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Contingency Fuel" 
@@ -461,6 +491,7 @@ export default function App() {
                   unit="kg" 
                   description="Auto-calculated (5% of trip fuel)"
                   disabled
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Alternate Fuel" 
@@ -468,20 +499,21 @@ export default function App() {
                   onChange={setAlternateFuel} 
                   unit="kg" 
                   description="Fuel to reach alternate airport"
+                  isDarkMode={isDarkMode}
                 />
               </div>
-              <div className="px-6 py-3 bg-red-50/50 border-t border-slate-100">
+              <div className={`px-6 py-3 border-t ${isDarkMode ? 'bg-red-950/20 border-slate-800' : 'bg-red-50/50 border-slate-100'}`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-red-800">Min Required Fuel (Trip + Cont + Alt)</span>
-                  <span className="text-sm font-mono font-bold text-red-900">{(tripFuel + contingencyFuel + alternateFuel).toLocaleString()} kg</span>
+                  <span className={`text-xs font-medium ${isDarkMode ? 'text-red-400' : 'text-red-800'}`}>Min Required Fuel (Trip + Cont + Alt)</span>
+                  <span className={`text-sm font-mono font-bold ${isDarkMode ? 'text-red-300' : 'text-red-900'}`}>{(tripFuel + contingencyFuel + alternateFuel).toLocaleString()} kg</span>
                 </div>
               </div>
             </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+            <section className={`rounded-2xl shadow-sm border overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`px-6 py-4 border-b flex items-center gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
                 <Users className="w-5 h-5 text-red-600" />
-                <h2 className="font-semibold">Crew Adjustments</h2>
+                <h2 className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Crew Adjustments</h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputGroup 
@@ -491,6 +523,7 @@ export default function App() {
                   unit="pers" 
                   description="Above 2 pilots"
                   min={0}
+                  isDarkMode={isDarkMode}
                 />
                 <InputGroup 
                   label="Extra Cabin Crew" 
@@ -499,19 +532,20 @@ export default function App() {
                   unit="pers" 
                   description="Above 4 crew"
                   min={0}
+                  isDarkMode={isDarkMode}
                 />
               </div>
-              <div className="px-6 py-3 bg-slate-50 border-t border-slate-100">
-                <div className="text-[10px] text-slate-500 grid grid-cols-2 gap-x-4">
+              <div className={`px-6 py-3 border-t ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                <div className={`text-[10px] grid grid-cols-2 gap-x-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   <div>
-                    <span className="font-bold uppercase">Pilot Variations:</span>
+                    <span className={`font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Pilot Variations:</span>
                     <ul className="list-disc list-inside ml-1">
                       <li>1st Obs: {INDEX_VAR_PILOT_1ST_OBS}</li>
                       <li>2nd Obs: {INDEX_VAR_PILOT_2ND_OBS}</li>
                     </ul>
                   </div>
                   <div>
-                    <span className="font-bold uppercase">Cabin Variations:</span>
+                    <span className={`font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Cabin Variations:</span>
                     <ul className="list-disc list-inside ml-1">
                       <li>Extra Crew: +{INDEX_VAR_CABIN_EXTRA} (Aft)</li>
                     </ul>
@@ -520,15 +554,15 @@ export default function App() {
               </div>
             </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+            <section className={`rounded-2xl shadow-sm border overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`px-6 py-4 border-b flex items-center gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h2 className="font-semibold">Structural Limits</h2>
+                <h2 className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Structural Limits</h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <InputGroup label="MTOW" value={mtow} onChange={setMtow} unit="kg" min={1} />
-                <InputGroup label="MLW" value={mlw} onChange={setMlw} unit="kg" min={1} />
-                <InputGroup label="MZFW" value={mzfw} onChange={setMzfw} unit="kg" min={1} />
+                <InputGroup label="MTOW" value={mtow} onChange={setMtow} unit="kg" min={1} isDarkMode={isDarkMode} />
+                <InputGroup label="MLW" value={mlw} onChange={setMlw} unit="kg" min={1} isDarkMode={isDarkMode} />
+                <InputGroup label="MZFW" value={mzfw} onChange={setMzfw} unit="kg" min={1} isDarkMode={isDarkMode} />
               </div>
             </section>
           </div>
@@ -538,36 +572,36 @@ export default function App() {
             <div className="sticky top-24">
               
               {/* Chart Section */}
-              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <section className={`rounded-2xl shadow-sm border overflow-hidden mb-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`px-6 py-4 border-b flex items-center justify-between ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-red-600" />
-                    <h2 className="font-semibold">Weight & Balance Envelope</h2>
+                    <h2 className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Weight & Balance Envelope</h2>
                   </div>
                 </div>
                 <div className="p-4 h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDarkMode ? "#1e293b" : "#f1f5f9"} />
                       <XAxis 
                         type="number" 
                         dataKey="index" 
                         domain={[20, 100]} 
-                        label={{ value: 'CG Index', position: 'insideBottom', offset: -10, fontSize: 10 }}
-                        tick={{ fontSize: 10 }}
+                        label={{ value: 'CG Index', position: 'insideBottom', offset: -10, fontSize: 10, fill: isDarkMode ? '#94a3b8' : '#64748b' }}
+                        tick={{ fontSize: 10, fill: isDarkMode ? '#94a3b8' : '#64748b' }}
                       />
                       <YAxis 
                         type="number" 
                         dataKey="weight" 
                         domain={[35000, 85000]} 
-                        label={{ value: 'Weight (kg)', angle: -90, position: 'insideLeft', offset: -30, fontSize: 10 }}
-                        tick={{ fontSize: 10 }}
+                        label={{ value: 'Weight (kg)', angle: -90, position: 'insideLeft', offset: -30, fontSize: 10, fill: isDarkMode ? '#94a3b8' : '#64748b' }}
+                        tick={{ fontSize: 10, fill: isDarkMode ? '#94a3b8' : '#64748b' }}
                       />
                       <Tooltip 
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             return (
-                              <div className="bg-slate-900 text-white p-2 rounded shadow-lg text-[10px]">
+                              <div className={`p-2 rounded shadow-lg text-[10px] ${isDarkMode ? 'bg-slate-800 text-slate-100 border border-slate-700' : 'bg-slate-900 text-white'}`}>
                                 <p className="font-bold">{payload[0].payload.name || 'Envelope'}</p>
                                 <p>Weight: {payload[0].payload.weight?.toLocaleString()} kg</p>
                                 <p>Index: {payload[0].payload.index?.toFixed(2) || payload[0].value?.toFixed(2)}</p>
@@ -634,7 +668,7 @@ export default function App() {
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex gap-4 text-[10px] text-slate-500">
+                <div className={`px-6 py-3 border-t flex gap-4 text-[10px] transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-red-500" />
                     <span>ZFW / LW</span>
@@ -650,8 +684,8 @@ export default function App() {
                 </div>
               </section>
 
-              <section className="bg-slate-900 text-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 bg-slate-800 flex items-center justify-between">
+              <section className={`rounded-2xl shadow-xl overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 text-white border border-slate-800' : 'bg-slate-900 text-white'}`}>
+                <div className={`px-6 py-4 flex items-center justify-between ${isDarkMode ? 'bg-slate-800' : 'bg-slate-800'}`}>
                   <h2 className="font-semibold flex items-center gap-2">
                     <Info className="w-4 h-4" />
                     Calculation Summary
@@ -682,9 +716,9 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3">
-                    <MetricRow label="Zero Fuel Weight (ZFW)" value={results.zfw} limit={mzfw} ok={results.limitations.zfwOk} index={results.zfwIndex} />
-                    <MetricRow label="Take Off Weight (TOW)" value={results.tow} limit={mtow} ok={results.limitations.towOk} index={results.towIndex} />
-                    <MetricRow label="Landing Weight (LW)" value={results.lw} limit={mlw} ok={results.limitations.lwOk} index={results.lwIndex} />
+                    <MetricRow label="Zero Fuel Weight (ZFW)" value={results.zfw} limit={mzfw} ok={results.limitations.zfwOk} index={results.zfwIndex} isDarkMode={isDarkMode} />
+                    <MetricRow label="Take Off Weight (TOW)" value={results.tow} limit={mtow} ok={results.limitations.towOk} index={results.towIndex} isDarkMode={isDarkMode} />
+                    <MetricRow label="Landing Weight (LW)" value={results.lw} limit={mlw} ok={results.limitations.lwOk} index={results.lwIndex} isDarkMode={isDarkMode} />
                   </div>
 
                   <div className="pt-4 border-t border-slate-800 space-y-3">
@@ -768,27 +802,27 @@ export default function App() {
       </div>
       </main>
 
-      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-100">
+      <footer className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t transition-colors duration-300 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
         <div className="flex flex-col items-center gap-6">
           <div className="flex items-center gap-4">
-            <div className="h-px w-12 bg-slate-200" />
+            <div className={`h-px w-12 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`} />
             <Plane className="w-4 h-4 text-red-600" />
-            <div className="h-px w-12 bg-slate-200" />
+            <div className={`h-px w-12 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`} />
           </div>
           
           <div className="text-center space-y-1">
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">
+            <p className={`text-[10px] font-bold uppercase tracking-[0.3em] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
               Developed by
             </p>
-            <h2 className="text-slate-900 text-lg font-bold tracking-tight">
+            <h2 className={`text-lg font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
               Aymane ZBAKH
             </h2>
           </div>
 
           <div className="flex items-center gap-3 text-slate-400">
-            <span className="text-[10px] font-mono tracking-wider px-2 py-1 bg-slate-50 rounded border border-slate-100">B737-800 OPS</span>
-            <div className="w-1 h-1 bg-slate-300 rounded-full" />
-            <span className="text-[10px] font-mono tracking-wider px-2 py-1 bg-slate-50 rounded border border-slate-100">v1.0.2</span>
+            <span className={`text-[10px] font-mono tracking-wider px-2 py-1 rounded border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>B737-800 OPS</span>
+            <div className={`w-1 h-1 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-300'}`} />
+            <span className={`text-[10px] font-mono tracking-wider px-2 py-1 rounded border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>v1.0.2</span>
           </div>
         </div>
       </footer>
@@ -796,7 +830,7 @@ export default function App() {
   );
 }
 
-function InputGroup({ label, value, onChange, unit, icon, description, error, errorMsg, min, max, disabled }: { 
+function InputGroup({ label, value, onChange, unit, icon, description, error, errorMsg, min, max, disabled, isDarkMode }: { 
   label: string; 
   value: number; 
   onChange: (val: number) => void; 
@@ -808,6 +842,7 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
   min?: number;
   max?: number;
   disabled?: boolean;
+  isDarkMode?: boolean;
 }) {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
@@ -819,11 +854,11 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className={`text-sm font-medium flex items-center gap-2 ${error ? 'text-rose-600' : 'text-slate-700'}`}>
-          {icon && <span className={error ? 'text-rose-400' : 'text-slate-400'}>{icon}</span>}
+        <label className={`text-sm font-medium flex items-center gap-2 ${error ? 'text-rose-600' : isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+          {icon && <span className={error ? 'text-rose-400' : isDarkMode ? 'text-slate-500' : 'text-slate-400'}>{icon}</span>}
           {label}
         </label>
-        <span className="text-[10px] font-bold text-slate-400 uppercase">{unit}</span>
+        <span className={`text-[10px] font-bold uppercase ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{unit}</span>
       </div>
       <div className="relative">
         <input 
@@ -833,11 +868,13 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
           disabled={disabled}
           min={min}
           max={max}
-          className={`w-full bg-slate-50 border rounded-lg px-3 py-2 text-sm focus:ring-2 outline-none transition-all font-mono ${
+          className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 outline-none transition-all font-mono ${
+            isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-900'
+          } ${
             error 
-              ? 'border-rose-300 focus:ring-rose-500 text-rose-900' 
-              : 'border-slate-200 focus:ring-red-500 focus:border-red-500'
-          } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''}`}
+              ? 'border-rose-300 focus:ring-rose-500 text-rose-900 dark:text-rose-400 dark:border-rose-900/50' 
+              : 'focus:ring-red-500 focus:border-red-500'
+          } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         />
         {error && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500">
@@ -848,32 +885,32 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
       {error && errorMsg ? (
         <p className="text-[10px] text-rose-500 font-medium">{errorMsg}</p>
       ) : description ? (
-        <p className="text-[10px] text-slate-400">{description}</p>
+        <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{description}</p>
       ) : null}
     </div>
   );
 }
 
-function ResultCard({ label, value, unit, highlight }: { label: string; value: number; unit: string; highlight?: boolean }) {
+function ResultCard({ label, value, unit, highlight }: { label: string; value: number | string; unit: string; highlight?: boolean }) {
   return (
-    <div className={`p-4 rounded-xl border ${highlight ? 'bg-red-600 border-red-500' : 'bg-slate-800 border-slate-700'}`}>
+    <div className={`p-4 rounded-xl border transition-colors duration-300 ${highlight ? 'bg-red-600 border-red-500' : 'bg-slate-800 border-slate-700'}`}>
       <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${highlight ? 'text-red-100' : 'text-slate-400'}`}>{label}</p>
       <div className="flex items-baseline gap-1">
-        <span className="text-xl font-mono font-bold">{value.toLocaleString()}</span>
+        <span className="text-xl font-mono font-bold text-white">{typeof value === 'number' ? value.toLocaleString() : value}</span>
         <span className={`text-[10px] font-medium ${highlight ? 'text-red-200' : 'text-slate-500'}`}>{unit}</span>
       </div>
     </div>
   );
 }
 
-function MetricRow({ label, value, limit, ok, index }: { label: string; value: number; limit: number; ok: boolean; index: number }) {
+function MetricRow({ label, value, limit, ok, index, isDarkMode }: { label: string; value: number; limit: number; ok: boolean; index: number; isDarkMode?: boolean }) {
   const percentage = Math.min(100, (value / limit) * 100);
   
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-xs text-slate-400 mb-0.5">{label}</p>
+          <p className={`text-xs mb-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>{label}</p>
           <div className="flex items-center gap-2">
             <span className={`text-sm font-mono font-bold ${ok ? 'text-white' : 'text-rose-400'}`}>
               {value.toLocaleString()} kg
@@ -886,7 +923,7 @@ function MetricRow({ label, value, limit, ok, index }: { label: string; value: n
           {ok ? 'PASS' : 'EXCEED'}
         </span>
       </div>
-      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-800'}`}>
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
