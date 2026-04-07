@@ -3,12 +3,12 @@
   "name": "B737 Weight and Balance",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/plane/192/192",
+      "src": "/icon.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://picsum.photos/seed/plane/512/512",
+      "src": "/icon.png",
       "type": "image/png",
       "sizes": "512x512"
     }
