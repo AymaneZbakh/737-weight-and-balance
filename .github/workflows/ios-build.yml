@@ -10,12 +10,12 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-line: 18
+        node-version: 18
         cache: 'npm'
 
     - name: Install dependencies
@@ -37,7 +37,7 @@ jobs:
       continue-on-error: true # This will likely fail without a real provisioning profile, but it's the standard path.
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ios-build
         path: ios/App
