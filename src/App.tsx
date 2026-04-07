@@ -57,6 +57,8 @@ interface CalculationResults {
   maxPayload: number;
   maxFuelWeight: number;
   flightMaxFuel: number;
+  flightMaxFuelByMTOW: number;
+  flightMaxFuelByMLW: number;
   doiCorrected: number;
   zfwIndex: number;
   towIndex: number;
@@ -213,6 +215,8 @@ export default function App() {
       maxPayload: Math.max(0, maxPayload),
       maxFuelWeight,
       flightMaxFuel,
+      flightMaxFuelByMTOW,
+      flightMaxFuelByMLW,
       doiCorrected,
       zfwIndex,
       towIndex,
@@ -296,31 +300,31 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
           <div className="flex items-center gap-3">
-            <div className="bg-red-600 p-2 rounded-lg">
-              <Plane className="text-white w-6 h-6" />
+            <div className="bg-red-600 p-2 rounded-lg flex-shrink-0">
+              <Plane className="text-white w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">Weight And Balance B737</h1>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Royal air Maroc</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold tracking-tight leading-tight truncate sm:whitespace-normal">Weight And Balance B737</h1>
+              <p className="text-[10px] sm:text-xs text-slate-500 font-medium uppercase tracking-wider">Royal air Maroc</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button 
               onClick={resetToDefaults}
-              className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-100 text-slate-600 px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors text-xs sm:text-sm font-medium"
               title="Reset to factory defaults"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Reset
             </button>
             <button 
               onClick={exportToCSV}
-              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors text-xs sm:text-sm font-medium"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Export CSV
             </button>
           </div>
@@ -339,10 +343,29 @@ export default function App() {
                 </div>
                 <h2 className="text-lg font-bold text-white tracking-tight">Limitation of the Day</h2>
               </div>
-              <p className="text-slate-400 text-sm max-w-md">
+              <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
                 The most restrictive structural limit for this flight is <span className="text-red-400 font-bold">{results.limitingFactor}</span>. 
                 Your maximum takeoff weight is capped at <span className="text-white font-mono font-bold">{Math.min(results.limitWeights.byMTOW, results.limitWeights.byMLW, results.limitWeights.byMZFW).toLocaleString()} kg</span>.
               </p>
+              <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10 max-w-2xl">
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {results.limitingFactor === 'MTOW' && (
+                    <>
+                      <span className="text-red-400 font-bold">MTOW Bottleneck:</span> The structural Maximum Takeoff Weight of <span className="text-white font-medium">{mtow.toLocaleString()} kg</span> is your primary constraint. No other structural or landing limits are more restrictive for this specific flight profile.
+                    </>
+                  )}
+                  {results.limitingFactor === 'MLW' && (
+                    <>
+                      <span className="text-red-400 font-bold">MLW Bottleneck:</span> Your takeoff weight is limited by your <span className="text-white font-medium">Maximum Landing Weight ({mlw.toLocaleString()} kg)</span> plus your <span className="text-white font-medium">Trip Fuel ({tripFuel.toLocaleString()} kg)</span>. Taking off heavier than <span className="text-white font-medium">{(mlw + tripFuel).toLocaleString()} kg</span> would result in an overweight landing at your destination.
+                    </>
+                  )}
+                  {results.limitingFactor === 'MZFW' && (
+                    <>
+                      <span className="text-red-400 font-bold">MZFW Bottleneck:</span> Your takeoff weight is limited by your <span className="text-white font-medium">Maximum Zero Fuel Weight ({mzfw.toLocaleString()} kg)</span> plus your <span className="text-white font-medium">Takeoff Fuel ({tof.toLocaleString()} kg)</span>. This ensures the fuselage and wing structure are not overstressed by payload before fuel is added.
+                    </>
+                  )}
+                </p>
+              </div>
             </div>
             <div className="hidden md:block relative z-10 text-right">
               <div className="text-4xl font-black text-red-500/20 mb-1">{results.limitingFactor}</div>
@@ -658,14 +681,52 @@ export default function App() {
                     <MetricRow label="Landing Weight (LW)" value={results.lw} limit={mlw} ok={results.limitations.lwOk} index={results.lwIndex} />
                   </div>
 
-                  <div className="pt-4 border-t border-slate-800 space-y-2">
+                  <div className="pt-4 border-t border-slate-800 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400 text-sm">Flight Max Fuel (Limited)</span>
-                      <span className="font-mono font-bold text-red-400">{results.flightMaxFuel.toFixed(0)} kg</span>
+                      <div className="text-right">
+                        <span className="font-mono font-bold text-red-400 block">{results.flightMaxFuel.toFixed(0)} kg</span>
+                        <span className="text-[10px] text-slate-500 italic">
+                          *Limited by {results.flightMaxFuel === results.maxFuelWeight ? 'Tank Capacity' : results.flightMaxFuel === results.flightMaxFuelByMTOW ? 'MTOW' : 'MLW'}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-slate-500 italic">
-                      *Limited by MTOW/MLW/MZFW for this specific payload.
-                    </p>
+                    
+                    <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700 space-y-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Constraint Breakdown</p>
+                      
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-500">Structural Tank Capacity</span>
+                          <span className="text-slate-300 font-mono">{results.maxFuelWeight.toLocaleString()} kg</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-500">MTOW Constraint (MTOW - ZFW)</span>
+                          <div className="text-right">
+                            <span className={`font-mono ${results.flightMaxFuelByMTOW <= results.maxFuelWeight ? 'text-red-400' : 'text-slate-300'}`}>
+                              {results.flightMaxFuelByMTOW.toLocaleString()} kg
+                            </span>
+                            <p className="text-[8px] text-slate-600 leading-none mt-0.5">({mtow.toLocaleString()} - {results.zfw.toLocaleString()})</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-500">MLW Constraint (MLW + Trip - ZFW)</span>
+                          <div className="text-right">
+                            <span className={`font-mono ${results.flightMaxFuelByMLW <= results.maxFuelWeight ? 'text-red-400' : 'text-slate-300'}`}>
+                              {results.flightMaxFuelByMLW.toLocaleString()} kg
+                            </span>
+                            <p className="text-[8px] text-slate-600 leading-none mt-0.5">({mlw.toLocaleString()} + {tripFuel.toLocaleString()} - {results.zfw.toLocaleString()})</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-[9px] text-slate-500 leading-relaxed mt-2 pt-2 border-t border-slate-700/50">
+                        The current payload of <span className="text-slate-300">{payload.toLocaleString()} kg</span> results in a ZFW of <span className="text-slate-300">{results.zfw.toLocaleString()} kg</span>. 
+                        This leaves <span className="text-red-400 font-bold">{results.flightMaxFuel.toFixed(0)} kg</span> of available weight for fuel before hitting the most restrictive limit.
+                      </p>
+                    </div>
                   </div>
 
                   {/* Status Banner */}
