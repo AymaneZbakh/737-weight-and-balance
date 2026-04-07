@@ -143,6 +143,11 @@ export default function App() {
     });
   }, [dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityLiters]);
 
+  // Auto-calculate contingency fuel (5% of trip fuel)
+  useEffect(() => {
+    setContingencyFuel(Math.round(tripFuel * 0.05));
+  }, [tripFuel]);
+
   const resetToDefaults = () => {
     setDow(DEFAULTS.dow);
     setDoi(DEFAULTS.doi);
@@ -454,7 +459,8 @@ export default function App() {
                   value={contingencyFuel} 
                   onChange={setContingencyFuel} 
                   unit="kg" 
-                  description="Usually 5% of trip fuel"
+                  description="Auto-calculated (5% of trip fuel)"
+                  disabled
                 />
                 <InputGroup 
                   label="Alternate Fuel" 
@@ -790,7 +796,7 @@ export default function App() {
   );
 }
 
-function InputGroup({ label, value, onChange, unit, icon, description, error, errorMsg, min, max }: { 
+function InputGroup({ label, value, onChange, unit, icon, description, error, errorMsg, min, max, disabled }: { 
   label: string; 
   value: number; 
   onChange: (val: number) => void; 
@@ -801,8 +807,10 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
   errorMsg?: string;
   min?: number;
   max?: number;
+  disabled?: boolean;
 }) {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const val = Number(e.target.value);
     if (isNaN(val)) return;
     onChange(val);
@@ -822,13 +830,14 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
           type="number" 
           value={value}
           onChange={handleChange}
+          disabled={disabled}
           min={min}
           max={max}
           className={`w-full bg-slate-50 border rounded-lg px-3 py-2 text-sm focus:ring-2 outline-none transition-all font-mono ${
             error 
               ? 'border-rose-300 focus:ring-rose-500 text-rose-900' 
               : 'border-slate-200 focus:ring-red-500 focus:border-red-500'
-          }`}
+          } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''}`}
         />
         {error && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500">
