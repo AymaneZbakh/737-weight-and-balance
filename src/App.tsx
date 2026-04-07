@@ -244,7 +244,7 @@ export default function App() {
 
   const exportToCSV = () => {
     const data = [
-      ['B737 Weight & Balance Report'],
+      ['Weight And Balance B737 Royal air Maroc Report'],
       ['Date', new Date().toLocaleString()],
       ['Limitation of the Day (Bottleneck)', results.limitingFactor],
       [''],
@@ -303,7 +303,7 @@ export default function App() {
               <Plane className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">B737 Weight & Balance</h1>
+              <h1 className="text-xl font-bold tracking-tight">Weight And Balance B737 Royal air Maroc</h1>
               <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Flight Operations Tool</p>
             </div>
           </div>
