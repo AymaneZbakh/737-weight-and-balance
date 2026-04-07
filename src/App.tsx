@@ -107,8 +107,15 @@ export default function App() {
 
   // Helper to load from localStorage
   const loadSaved = (key: keyof typeof DEFAULTS) => {
-    const saved = localStorage.getItem(`b737_wb_${key}`);
-    return saved !== null ? Number(saved) : DEFAULTS[key];
+    try {
+      const saved = localStorage.getItem(`b737_wb_${key}`);
+      if (saved === null) return DEFAULTS[key];
+      const num = Number(saved);
+      return isNaN(num) ? DEFAULTS[key] : num;
+    } catch (e) {
+      console.warn('LocalStorage access failed:', e);
+      return DEFAULTS[key];
+    }
   };
 
   // Inputs
