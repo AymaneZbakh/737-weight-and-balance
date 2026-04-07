@@ -1,0 +1,5 @@
+{
+  "name": "B737 Weight & Balance Calculator",
+  "description": "A professional aviation tool for calculating Boeing 737 weight and balance parameters, including DOW corrections, payload limits, and fuel requirements.",
+  "requestFramePermissions": []
+}
