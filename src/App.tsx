@@ -696,22 +696,34 @@ export default function App() {
               </section>
 
               {/* Quick Info */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <h3 className="text-blue-800 text-xs font-bold uppercase tracking-wider mb-2">Operational Note</h3>
-                <p className="text-blue-700 text-sm leading-relaxed">
-                  Calculations are based on standard B737-800 parameters. Always verify against the specific aircraft's Load & Trim sheet and AFM.
-                </p>
-              </div>
-            </div>
           </div>
-
         </div>
+      </div>
       </main>
 
-      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-slate-200">
-        <p className="text-center text-slate-500 text-sm font-medium">
-          made by Aymane ZBAKH
-        </p>
+      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-100">
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex items-center gap-4">
+            <div className="h-px w-12 bg-slate-200" />
+            <Plane className="w-4 h-4 text-red-600" />
+            <div className="h-px w-12 bg-slate-200" />
+          </div>
+          
+          <div className="text-center space-y-1">
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">
+              Developed by
+            </p>
+            <h2 className="text-slate-900 text-lg font-bold tracking-tight">
+              Aymane ZBAKH
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3 text-slate-400">
+            <span className="text-[10px] font-mono tracking-wider px-2 py-1 bg-slate-50 rounded border border-slate-100">B737-800 OPS</span>
+            <div className="w-1 h-1 bg-slate-300 rounded-full" />
+            <span className="text-[10px] font-mono tracking-wider px-2 py-1 bg-slate-50 rounded border border-slate-100">v1.0.2</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
