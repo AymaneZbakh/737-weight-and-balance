@@ -1,0 +1,20 @@
+{
+  "short_name": "B737 W&B",
+  "name": "B737 Weight and Balance",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/plane/192/192",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://picsum.photos/seed/plane/512/512",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#dc2626",
+  "background_color": "#f8fafc"
+}

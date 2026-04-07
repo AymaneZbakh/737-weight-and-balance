@@ -1,0 +1,6 @@
+{
+  "appId": "com.aymanezbakh.b737wb",
+  "appName": "B737 Weight and Balance",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

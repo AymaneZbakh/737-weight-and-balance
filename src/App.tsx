@@ -104,7 +104,7 @@ export default function App() {
     alternateFuel: 1500,
     extraPilots: 0,
     extraCabinCrew: 0,
-    fuelCapacityLiters: 26020
+    fuelCapacityKg: 20816
   };
 
   // Helper to load from localStorage
@@ -133,15 +133,15 @@ export default function App() {
   const [alternateFuel, setAlternateFuel] = useState<number>(() => loadSaved('alternateFuel'));
   const [extraPilots, setExtraPilots] = useState<number>(() => loadSaved('extraPilots'));
   const [extraCabinCrew, setExtraCabinCrew] = useState<number>(() => loadSaved('extraCabinCrew'));
-  const [fuelCapacityLiters, setFuelCapacityLiters] = useState<number>(() => loadSaved('fuelCapacityLiters'));
+  const [fuelCapacityKg, setFuelCapacityKg] = useState<number>(() => loadSaved('fuelCapacityKg'));
 
   // Save to localStorage whenever values change
   useEffect(() => {
-    const state = { dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityLiters };
+    const state = { dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg };
     Object.entries(state).forEach(([key, value]) => {
       localStorage.setItem(`b737_wb_${key}`, value.toString());
     });
-  }, [dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityLiters]);
+  }, [dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg]);
 
   // Auto-calculate contingency fuel (5% of trip fuel)
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function App() {
     setAlternateFuel(DEFAULTS.alternateFuel);
     setExtraPilots(DEFAULTS.extraPilots);
     setExtraCabinCrew(DEFAULTS.extraCabinCrew);
-    setFuelCapacityLiters(DEFAULTS.fuelCapacityLiters);
+    setFuelCapacityKg(DEFAULTS.fuelCapacityKg);
   };
 
   const results = useMemo((): CalculationResults => {
@@ -179,7 +179,7 @@ export default function App() {
     const tow = zfw + tof;
     const lw = tow - tripFuel;
     
-    const maxFuelWeight = fuelCapacityLiters * FUEL_DENSITY;
+    const maxFuelWeight = fuelCapacityKg;
 
     // Max Fuel we can carry on this specific flight (Flight-Specific Max Fuel)
     // Limited by:
@@ -241,7 +241,7 @@ export default function App() {
         tripFuelOk: tripFuel <= tof && tripFuel >= 0,
       }
     };
-  }, [dow, doi, extraPilots, extraCabinCrew, payload, tof, tripFuel, mzfw, mtow, mlw, fuelCapacityLiters]);
+  }, [dow, doi, extraPilots, extraCabinCrew, payload, tof, tripFuel, mzfw, mtow, mlw, fuelCapacityKg]);
 
   const chartData = useMemo(() => {
     return [
@@ -421,9 +421,9 @@ export default function App() {
                 />
                 <InputGroup 
                   label="Fuel Capacity" 
-                  value={fuelCapacityLiters} 
-                  onChange={setFuelCapacityLiters} 
-                  unit="L" 
+                  value={fuelCapacityKg} 
+                  onChange={setFuelCapacityKg} 
+                  unit="kg" 
                   icon={<Fuel className="w-4 h-4" />}
                   min={1}
                 />

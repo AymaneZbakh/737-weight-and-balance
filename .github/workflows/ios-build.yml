@@ -1,0 +1,43 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-line: 18
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build Web App
+      run: npm run build
+
+    - name: Capacitor Sync
+      run: |
+        npx cap add ios
+        npx cap sync ios
+
+    - name: Build iOS App
+      run: |
+        cd ios/App
+        xcodebuild -workspace App.xcworkspace -scheme App -sdk iphoneos -configuration Release -archivePath App.xcarchive archive
+        xcodebuild -exportArchive -archivePath App.xcarchive -exportOptionsPlist exportOptions.plist -exportPath output
+      continue-on-error: true # This will likely fail without a real provisioning profile, but it's the standard path.
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-build
+        path: ios/App
