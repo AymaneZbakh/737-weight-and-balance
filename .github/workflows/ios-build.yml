@@ -15,7 +15,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 20
         cache: 'npm'
 
     - name: Install dependencies
@@ -26,18 +26,19 @@ jobs:
 
     - name: Capacitor Sync
       run: |
-        npx cap add ios
-        npx cap sync ios
+        npx cap sync ios || (npx cap add ios && npx cap sync ios)
 
     - name: Build iOS App
       run: |
-        cd ios/App
-        xcodebuild -workspace App.xcworkspace -scheme App -sdk iphoneos -configuration Release -archivePath App.xcarchive archive
-        xcodebuild -exportArchive -archivePath App.xcarchive -exportOptionsPlist exportOptions.plist -exportPath output
-      continue-on-error: true # This will likely fail without a real provisioning profile, but it's the standard path.
-
-    - name: Upload Artifact
+        xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphoneos -configuration Release -derivedDataPath build
+        
+        # Create IPA structure for Sideloadly
+        mkdir -p Payload
+        cp -r build/Build/Products/Release-iphoneos/App.app Payload/
+        zip -r App.ipa Payload
+        
+    - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
-        name: ios-build
-        path: ios/App
+        name: B737-WB-iOS
+        path: App.ipa
