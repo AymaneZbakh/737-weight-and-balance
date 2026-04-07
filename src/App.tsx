@@ -32,7 +32,8 @@ import {
   Tooltip, 
   ResponsiveContainer,
   Scatter,
-  ReferenceLine
+  ReferenceLine,
+  Cell
 } from 'recharts';
 
 // Standard constants (kg)
@@ -80,16 +81,6 @@ interface CalculationResults {
     tripFuelOk: boolean;
   };
 }
-
-// B737-800 Approximate Envelope Data (Weight vs CG Index)
-const ENVELOPE_DATA = [
-  { weight: 40000, minIndex: 30, maxIndex: 70 },
-  { weight: 50000, minIndex: 32, maxIndex: 72 },
-  { weight: 60000, minIndex: 35, maxIndex: 75 },
-  { weight: 62731, minIndex: 38, maxIndex: 78 }, // MZFW
-  { weight: 66349, minIndex: 40, maxIndex: 80 }, // MLW
-  { weight: 79010, minIndex: 45, maxIndex: 85 }, // MTOW
-];
 
 export default function App() {
   // Default Values
@@ -260,13 +251,32 @@ export default function App() {
     };
   }, [dow, doi, extraPilots, extraCabinCrew, payload, tof, tripFuel, mzfw, mtow, mlw, fuelCapacityKg]);
 
+  const envelopeData = useMemo(() => {
+    // Basic envelope points
+    const basePoints = [
+      { weight: 40000, minIndex: 30, maxIndex: 70, label: 'Basic Envelope' },
+      { weight: 50000, minIndex: 32, maxIndex: 72, label: 'Basic Envelope' },
+      { weight: 60000, minIndex: 35, maxIndex: 75, label: 'Basic Envelope' },
+    ];
+    
+    // Structural limit points (dynamic)
+    const limitPoints = [
+      { weight: mzfw, minIndex: 38, maxIndex: 78, label: 'MZFW Limit' },
+      { weight: mlw, minIndex: 40, maxIndex: 80, label: 'MLW Limit' },
+      { weight: mtow, minIndex: 45, maxIndex: 85, label: 'MTOW Limit' },
+    ];
+
+    // Combine and sort by weight for correct chart rendering
+    return [...basePoints, ...limitPoints].sort((a, b) => a.weight - b.weight);
+  }, [mzfw, mlw, mtow]);
+
   const chartData = useMemo(() => {
     return [
-      { name: 'ZFW', weight: results.zfw, index: results.zfwIndex },
-      { name: 'TOW', weight: results.tow, index: results.towIndex },
-      { name: 'LW', weight: results.lw, index: results.lwIndex },
+      { name: 'ZFW', weight: results.zfw, index: results.zfwIndex, ok: results.limitations.zfwOk, limit: mzfw },
+      { name: 'TOW', weight: results.tow, index: results.towIndex, ok: results.limitations.towOk, limit: mtow },
+      { name: 'LW', weight: results.lw, index: results.lwIndex, ok: results.limitations.lwOk, limit: mlw },
     ];
-  }, [results]);
+  }, [results, mzfw, mtow, mlw]);
 
   const exportToCSV = () => {
     const data = [
@@ -600,11 +610,73 @@ export default function App() {
                       <Tooltip 
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const isStatePoint = !!data.name; // ZFW, TOW, LW have names
+                            
+                            // Define colors for each point type
+                            const getPointColor = (name: string) => {
+                              switch (name) {
+                                case 'ZFW': return 'text-blue-500 border-blue-500/30';
+                                case 'TOW': return 'text-red-500 border-red-500/30';
+                                case 'LW': return 'text-emerald-500 border-emerald-500/30';
+                                default: return 'text-red-600 border-red-600/30';
+                              }
+                            };
+
+                            const getPointBg = (name: string) => {
+                              if (!isDarkMode) {
+                                switch (name) {
+                                  case 'ZFW': return 'bg-blue-50 border-blue-100';
+                                  case 'TOW': return 'bg-red-50 border-red-100';
+                                  case 'LW': return 'bg-emerald-50 border-emerald-100';
+                                  default: return 'bg-white border-slate-200';
+                                }
+                              }
+                              switch (name) {
+                                case 'ZFW': return 'bg-slate-900 border-blue-900/50';
+                                case 'TOW': return 'bg-slate-900 border-red-900/50';
+                                case 'LW': return 'bg-slate-900 border-emerald-900/50';
+                                default: return 'bg-slate-900 border-slate-700';
+                              }
+                            };
+
+                            const pointColorClass = getPointColor(data.name || '');
+                            const pointBgClass = getPointBg(data.name || '');
+                            
                             return (
-                              <div className={`p-2 rounded shadow-lg text-[10px] ${isDarkMode ? 'bg-slate-800 text-slate-100 border border-slate-700' : 'bg-slate-900 text-white'}`}>
-                                <p className="font-bold">{payload[0].payload.name || 'Envelope'}</p>
-                                <p>Weight: {payload[0].payload.weight?.toLocaleString()} kg</p>
-                                <p>Index: {payload[0].payload.index?.toFixed(2) || payload[0].value?.toFixed(2)}</p>
+                              <div className={`p-3 rounded-xl shadow-2xl text-xs border transition-all duration-300 ${pointBgClass} ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                                <div className="flex items-center justify-between gap-4 mb-2">
+                                  <span className={`font-bold text-sm uppercase tracking-tight ${isStatePoint ? pointColorClass.split(' ')[0] : ''}`}>
+                                    {data.name || data.label || 'Envelope Point'}
+                                  </span>
+                                  {isStatePoint && (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${data.ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                      {data.ok ? 'PASS' : 'EXCEED'}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="space-y-1 font-mono">
+                                  <div className="flex justify-between gap-8">
+                                    <span className="text-slate-500">Weight:</span>
+                                    <span className="font-bold">{data.weight?.toLocaleString()} kg</span>
+                                  </div>
+                                  <div className="flex justify-between gap-8">
+                                    <span className="text-slate-500">CG Index:</span>
+                                    <span className="font-bold">{(data.index || data.minIndex || data.maxIndex)?.toFixed(2)}</span>
+                                  </div>
+                                  {isStatePoint && data.limit && (
+                                    <div className={`flex justify-between gap-8 pt-1 border-t mt-1 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                                      <span className="text-slate-500">Limit:</span>
+                                      <span className="font-bold">{data.limit.toLocaleString()} kg</span>
+                                    </div>
+                                  )}
+                                  {!isStatePoint && data.label && (
+                                    <div className={`pt-1 border-t mt-1 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                                      <span className="text-red-400 font-medium">{data.label}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             );
                           }
@@ -614,7 +686,7 @@ export default function App() {
                       
                       {/* Envelope Area */}
                       <Area 
-                        data={ENVELOPE_DATA} 
+                        data={envelopeData} 
                         dataKey="maxIndex" 
                         stroke="none" 
                         fill="#ef4444" 
@@ -623,7 +695,7 @@ export default function App() {
                         isAnimationActive={false}
                       />
                       <Line 
-                        data={ENVELOPE_DATA} 
+                        data={envelopeData} 
                         dataKey="minIndex" 
                         stroke="#ef4444" 
                         strokeWidth={1} 
@@ -631,7 +703,7 @@ export default function App() {
                         isAnimationActive={false}
                       />
                       <Line 
-                        data={ENVELOPE_DATA} 
+                        data={envelopeData} 
                         dataKey="maxIndex" 
                         stroke="#ef4444" 
                         strokeWidth={1} 
@@ -648,34 +720,40 @@ export default function App() {
                       <Scatter 
                         name="Current State" 
                         data={chartData} 
-                        fill="#ef4444"
                       >
-                        {chartData.map((entry, index) => (
-                          <motion.circle 
-                            key={`dot-${index}`}
-                            cx={0} cy={0} r={4} 
-                            fill={entry.name === 'TOW' ? '#f43f5e' : '#ef4444'}
-                          />
-                        ))}
+                        {chartData.map((entry, index) => {
+                          let color = '#ef4444'; // Default Red
+                          if (entry.name === 'ZFW') color = '#3b82f6'; // Blue
+                          if (entry.name === 'LW') color = '#10b981'; // Emerald
+                          if (entry.name === 'TOW') color = '#f43f5e'; // Rose/Red
+                          return <Cell key={`cell-${index}`} fill={color} />;
+                        })}
                       </Scatter>
                       <Line 
                         data={chartData} 
                         dataKey="weight" 
-                        stroke="#ef4444" 
-                        strokeWidth={2} 
-                        dot={true}
+                        stroke={isDarkMode ? "#475569" : "#94a3b8"} 
+                        strokeWidth={1} 
+                        strokeDasharray="5 5"
+                        dot={false}
+                        activeDot={false}
+                        isAnimationActive={false}
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-                <div className={`px-6 py-3 border-t flex gap-4 text-[10px] transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                <div className={`px-6 py-3 border-t flex flex-wrap gap-4 text-[10px] transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span>ZFW / LW</span>
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>ZFW</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-rose-500" />
                     <span>TOW</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>LW</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-red-500/20 border border-red-500/40 rounded" />
