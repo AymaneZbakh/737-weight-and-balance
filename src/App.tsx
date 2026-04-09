@@ -101,18 +101,20 @@ export default function App() {
   };
 
   // Helper to load from localStorage
-  const loadSaved = (key: keyof typeof DEFAULTS) => {
+  const loadSaved = (key: keyof typeof DEFAULTS): number | '' => {
     try {
       // Try new unified state first
       const unified = localStorage.getItem('b737_wb_state_v2');
       if (unified) {
         const parsed = JSON.parse(unified);
+        if (parsed[key] === '') return '';
         if (parsed[key] !== undefined) return Number(parsed[key]);
       }
 
       // Fallback to old individual keys
       const saved = localStorage.getItem(`b737_wb_${key}`);
       if (saved === null) return DEFAULTS[key];
+      if (saved === '') return '';
       const num = Number(saved);
       return isNaN(num) ? DEFAULTS[key] : num;
     } catch (e) {
@@ -122,19 +124,19 @@ export default function App() {
   };
 
   // Inputs
-  const [dow, setDow] = useState<number>(() => loadSaved('dow'));
-  const [doi, setDoi] = useState<number>(() => loadSaved('doi'));
-  const [mtow, setMtow] = useState<number>(() => loadSaved('mtow'));
-  const [mlw, setMlw] = useState<number>(() => loadSaved('mlw'));
-  const [mzfw, setMzfw] = useState<number>(() => loadSaved('mzfw'));
-  const [payload, setPayload] = useState<number>(() => loadSaved('payload'));
-  const [tof, setTof] = useState<number>(() => loadSaved('tof'));
-  const [tripFuel, setTripFuel] = useState<number>(() => loadSaved('tripFuel'));
-  const [contingencyFuel, setContingencyFuel] = useState<number>(() => loadSaved('contingencyFuel'));
-  const [alternateFuel, setAlternateFuel] = useState<number>(() => loadSaved('alternateFuel'));
-  const [extraPilots, setExtraPilots] = useState<number>(() => loadSaved('extraPilots'));
-  const [extraCabinCrew, setExtraCabinCrew] = useState<number>(() => loadSaved('extraCabinCrew'));
-  const [fuelCapacityKg, setFuelCapacityKg] = useState<number>(() => loadSaved('fuelCapacityKg'));
+  const [dow, setDow] = useState<number | ''>(() => loadSaved('dow'));
+  const [doi, setDoi] = useState<number | ''>(() => loadSaved('doi'));
+  const [mtow, setMtow] = useState<number | ''>(() => loadSaved('mtow'));
+  const [mlw, setMlw] = useState<number | ''>(() => loadSaved('mlw'));
+  const [mzfw, setMzfw] = useState<number | ''>(() => loadSaved('mzfw'));
+  const [payload, setPayload] = useState<number | ''>(() => loadSaved('payload'));
+  const [tof, setTof] = useState<number | ''>(() => loadSaved('tof'));
+  const [tripFuel, setTripFuel] = useState<number | ''>(() => loadSaved('tripFuel'));
+  const [contingencyFuel, setContingencyFuel] = useState<number | ''>(() => loadSaved('contingencyFuel'));
+  const [alternateFuel, setAlternateFuel] = useState<number | ''>(() => loadSaved('alternateFuel'));
+  const [extraPilots, setExtraPilots] = useState<number | ''>(() => loadSaved('extraPilots'));
+  const [extraCabinCrew, setExtraCabinCrew] = useState<number | ''>(() => loadSaved('extraCabinCrew'));
+  const [fuelCapacityKg, setFuelCapacityKg] = useState<number | ''>(() => loadSaved('fuelCapacityKg'));
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('b737_wb_darkMode');
     if (saved !== null) return saved === 'true';
@@ -167,7 +169,8 @@ export default function App() {
 
   // Auto-calculate contingency fuel (5% of trip fuel)
   useEffect(() => {
-    setContingencyFuel(Math.round(tripFuel * 0.05));
+    const nTripFuel = Number(tripFuel) || 0;
+    setContingencyFuel(Math.round(nTripFuel * 0.05));
   }, [tripFuel]);
 
   const resetToDefaults = () => {
@@ -187,44 +190,45 @@ export default function App() {
   };
 
   const results = useMemo((): CalculationResults => {
-    const dowCorrected = dow + (extraPilots * PILOT_WEIGHT) + (extraCabinCrew * CABIN_CREW_WEIGHT);
+    const nDow = Number(dow) || 0;
+    const nDoi = Number(doi) || 0;
+    const nMtow = Number(mtow) || 0;
+    const nMlw = Number(mlw) || 0;
+    const nMzfw = Number(mzfw) || 0;
+    const nPayload = Number(payload) || 0;
+    const nTof = Number(tof) || 0;
+    const nTripFuel = Number(tripFuel) || 0;
+    const nExtraPilots = Number(extraPilots) || 0;
+    const nExtraCabinCrew = Number(extraCabinCrew) || 0;
+    const nFuelCapacity = Number(fuelCapacityKg) || 0;
+
+    const dowCorrected = nDow + (nExtraPilots * PILOT_WEIGHT) + (nExtraCabinCrew * CABIN_CREW_WEIGHT);
     
     // Calculate Corrected DOI based on extra crew positions
-    // 1st extra pilot = 1st Observer (-1.44)
-    // 2nd extra pilot = 2nd Observer (-1.45)
-    // Extra cabin crew = Aft jumpseats (+1.08)
-    const pilotIndexVar = (extraPilots >= 1 ? INDEX_VAR_PILOT_1ST_OBS : 0) + (extraPilots >= 2 ? INDEX_VAR_PILOT_2ND_OBS : 0);
-    const cabinIndexVar = extraCabinCrew * INDEX_VAR_CABIN_EXTRA;
-    const doiCorrected = doi + pilotIndexVar + cabinIndexVar;
+    const pilotIndexVar = (nExtraPilots >= 1 ? INDEX_VAR_PILOT_1ST_OBS : 0) + (nExtraPilots >= 2 ? INDEX_VAR_PILOT_2ND_OBS : 0);
+    const cabinIndexVar = nExtraCabinCrew * INDEX_VAR_CABIN_EXTRA;
+    const doiCorrected = nDoi + pilotIndexVar + cabinIndexVar;
 
-    const zfw = dowCorrected + payload;
-    const tow = zfw + tof;
-    const lw = tow - tripFuel;
+    const zfw = dowCorrected + nPayload;
+    const tow = zfw + nTof;
+    const lw = tow - nTripFuel;
     
-    const maxFuelWeight = fuelCapacityKg;
+    const maxFuelWeight = nFuelCapacity;
 
     // Max Fuel we can carry on this specific flight (Flight-Specific Max Fuel)
-    // Limited by:
-    // 1. Structural capacity
-    // 2. MTOW - ZFW
-    // 3. MLW + Trip Fuel - ZFW
-    const flightMaxFuelByMTOW = mtow - zfw;
-    const flightMaxFuelByMLW = mlw + tripFuel - zfw;
+    const flightMaxFuelByMTOW = nMtow - zfw;
+    const flightMaxFuelByMLW = nMlw + nTripFuel - zfw;
     const flightMaxFuel = Math.max(0, Math.min(maxFuelWeight, flightMaxFuelByMTOW, flightMaxFuelByMLW));
 
     // CG Index Calculations (Simplified)
-    const zfwIndex = doiCorrected + (payload / 1000 * PAYLOAD_ARM_OFFSET);
-    const towIndex = zfwIndex + (tof / 1000 * FUEL_ARM_OFFSET);
-    const lwIndex = towIndex - (tripFuel / 1000 * FUEL_ARM_OFFSET);
+    const zfwIndex = doiCorrected + (nPayload / 1000 * PAYLOAD_ARM_OFFSET);
+    const towIndex = zfwIndex + (nTof / 1000 * FUEL_ARM_OFFSET);
+    const lwIndex = towIndex - (nTripFuel / 1000 * FUEL_ARM_OFFSET);
 
     // Determine Limiting Factor for Takeoff
-    // The most restrictive TOW is the minimum of:
-    // 1. MTOW
-    // 2. MLW + Trip Fuel (Can't land heavier than MLW)
-    // 3. MZFW + TOF (Can't have ZFW heavier than MZFW)
-    const limitByMTOW = mtow;
-    const limitByMLW = mlw + tripFuel;
-    const limitByMZFW = mzfw + tof;
+    const limitByMTOW = nMtow;
+    const limitByMLW = nMlw + nTripFuel;
+    const limitByMZFW = nMzfw + nTof;
 
     let limitingFactor: 'MTOW' | 'MLW' | 'MZFW' = 'MTOW';
     const minLimit = Math.min(limitByMTOW, limitByMLW, limitByMZFW);
@@ -232,7 +236,7 @@ export default function App() {
     if (minLimit === limitByMLW) limitingFactor = 'MLW';
     else if (minLimit === limitByMZFW) limitingFactor = 'MZFW';
 
-    const maxPayload = minLimit - dowCorrected - tof;
+    const maxPayload = minLimit - dowCorrected - nTof;
 
     return {
       dowCorrected,
@@ -255,17 +259,21 @@ export default function App() {
         byMZFW: limitByMZFW,
       },
       limitations: {
-        zfwOk: zfw <= mzfw && zfw > 0,
-        towOk: tow <= mtow && tow > 0,
-        lwOk: lw <= mlw && lw > 0,
-        payloadOk: payload <= (minLimit - dowCorrected - tof) && payload >= 0,
-        fuelOk: tof <= maxFuelWeight && tof >= 0,
-        tripFuelOk: tripFuel <= tof && tripFuel >= 0,
+        zfwOk: zfw <= nMzfw && zfw > 0,
+        towOk: tow <= nMtow && tow > 0,
+        lwOk: lw <= nMlw && lw > 0,
+        payloadOk: nPayload <= (minLimit - dowCorrected - nTof) && nPayload >= 0,
+        fuelOk: nTof <= maxFuelWeight && nTof >= 0,
+        tripFuelOk: nTripFuel <= nTof && nTripFuel >= 0,
       }
     };
   }, [dow, doi, extraPilots, extraCabinCrew, payload, tof, tripFuel, mzfw, mtow, mlw, fuelCapacityKg]);
 
   const envelopeData = useMemo(() => {
+    const nMzfw = Number(mzfw) || 0;
+    const nMlw = Number(mlw) || 0;
+    const nMtow = Number(mtow) || 0;
+
     // Basic envelope points
     const basePoints = [
       { weight: 40000, minIndex: 30, maxIndex: 70, label: 'Basic Envelope' },
@@ -275,9 +283,9 @@ export default function App() {
     
     // Structural limit points (dynamic)
     const limitPoints = [
-      { weight: mzfw, minIndex: 38, maxIndex: 78, label: 'MZFW Limit' },
-      { weight: mlw, minIndex: 40, maxIndex: 80, label: 'MLW Limit' },
-      { weight: mtow, minIndex: 45, maxIndex: 85, label: 'MTOW Limit' },
+      { weight: nMzfw, minIndex: 38, maxIndex: 78, label: 'MZFW Limit' },
+      { weight: nMlw, minIndex: 40, maxIndex: 80, label: 'MLW Limit' },
+      { weight: nMtow, minIndex: 45, maxIndex: 85, label: 'MTOW Limit' },
     ];
 
     // Combine and sort by weight for correct chart rendering
@@ -285,10 +293,14 @@ export default function App() {
   }, [mzfw, mlw, mtow]);
 
   const chartData = useMemo(() => {
+    const nMzfw = Number(mzfw) || 0;
+    const nMlw = Number(mlw) || 0;
+    const nMtow = Number(mtow) || 0;
+
     return [
-      { name: 'ZFW', weight: results.zfw, index: results.zfwIndex, ok: results.limitations.zfwOk, limit: mzfw },
-      { name: 'TOW', weight: results.tow, index: results.towIndex, ok: results.limitations.towOk, limit: mtow },
-      { name: 'LW', weight: results.lw, index: results.lwIndex, ok: results.limitations.lwOk, limit: mlw },
+      { name: 'ZFW', weight: results.zfw, index: results.zfwIndex, ok: results.limitations.zfwOk, limit: nMzfw },
+      { name: 'TOW', weight: results.tow, index: results.towIndex, ok: results.limitations.towOk, limit: nMtow },
+      { name: 'LW', weight: results.lw, index: results.lwIndex, ok: results.limitations.lwOk, limit: nMlw },
     ];
   }, [results, mzfw, mtow, mlw]);
 
@@ -460,8 +472,6 @@ export default function App() {
                   unit="kg" 
                   icon={<Weight className="w-4 h-4" />}
                   description="2/4 Configuration base weight"
-                  min={35000}
-                  max={55000}
                   isDarkMode={isDarkMode}
                 />
                 <InputGroup 
@@ -470,8 +480,6 @@ export default function App() {
                   onChange={setDoi} 
                   unit="idx" 
                   icon={<ArrowRightLeft className="w-4 h-4" />}
-                  min={0}
-                  max={100}
                   isDarkMode={isDarkMode}
                 />
                 <InputGroup 
@@ -938,8 +946,8 @@ export default function App() {
 
 function InputGroup({ label, value, onChange, unit, icon, description, error, errorMsg, min, max, disabled, isDarkMode }: { 
   label: string; 
-  value: number; 
-  onChange: (val: number) => void; 
+  value: number | ''; 
+  onChange: (val: number | '') => void; 
   unit: string;
   icon?: ReactNode;
   description?: string;
@@ -952,7 +960,12 @@ function InputGroup({ label, value, onChange, unit, icon, description, error, er
 }) {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
-    const val = Number(e.target.value);
+    const rawValue = e.target.value;
+    if (rawValue === '') {
+      onChange('');
+      return;
+    }
+    const val = Number(rawValue);
     if (isNaN(val)) return;
     onChange(val);
   };
