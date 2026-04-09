@@ -47,7 +47,7 @@ const INDEX_VARS = {
     PILOT_1ST_OBS: -1.44,
     PILOT_2ND_OBS: -1.45,
     CABIN_AFT: 1.08,
-    CABIN_FWD: 1.08, // NG keeps same correction as per user request
+    CABIN_FWD: -1.18,
   },
   MAX: {
     PILOT_1ST_OBS: -1.44,
