@@ -41,10 +41,21 @@ const PILOT_WEIGHT = 85;
 const CABIN_CREW_WEIGHT = 75;
 const FUEL_DENSITY = 0.8; // kg/L for Jet A-1
 
-// Index Variations from provided image
-const INDEX_VAR_PILOT_1ST_OBS = -1.44;
-const INDEX_VAR_PILOT_2ND_OBS = -1.45;
-const INDEX_VAR_CABIN_EXTRA = 1.08; // Assuming extra crew sit in Aft jumpseats (+1.08)
+// Index Variations
+const INDEX_VARS = {
+  NG: {
+    PILOT_1ST_OBS: -1.44,
+    PILOT_2ND_OBS: -1.45,
+    CABIN_AFT: 1.08,
+    CABIN_FWD: 1.08, // NG keeps same correction as per user request
+  },
+  MAX: {
+    PILOT_1ST_OBS: -1.44,
+    PILOT_2ND_OBS: -1.45,
+    CABIN_FWD: -1.16,
+    CABIN_AFT: 1.10,
+  }
+};
 
 // Simplified CG Index calculation constants (approximate for B737-800)
 // DOI = Dry Operating Index
@@ -97,26 +108,33 @@ export default function App() {
     alternateFuel: 1500,
     extraPilots: 0,
     extraCabinCrew: 0,
-    fuelCapacityKg: 20816
+    fuelCapacityKg: 20816,
+    aircraftType: 'NG' as 'NG' | 'MAX',
+    cabinPosition: 'AFT' as 'FWD' | 'AFT'
   };
 
   // Helper to load from localStorage
-  const loadSaved = (key: keyof typeof DEFAULTS): number | '' => {
+  const loadSaved = (key: keyof typeof DEFAULTS): any => {
     try {
       // Try new unified state first
       const unified = localStorage.getItem('b737_wb_state_v2');
       if (unified) {
         const parsed = JSON.parse(unified);
-        if (parsed[key] === '') return '';
-        if (parsed[key] !== undefined) return Number(parsed[key]);
+        if (parsed[key] !== undefined) return parsed[key];
       }
 
       // Fallback to old individual keys
       const saved = localStorage.getItem(`b737_wb_${key}`);
       if (saved === null) return DEFAULTS[key];
       if (saved === '') return '';
-      const num = Number(saved);
-      return isNaN(num) ? DEFAULTS[key] : num;
+      
+      // Handle numeric values
+      if (typeof DEFAULTS[key] === 'number') {
+        const num = Number(saved);
+        return isNaN(num) ? DEFAULTS[key] : num;
+      }
+      
+      return saved;
     } catch (e) {
       console.warn('LocalStorage access failed:', e);
       return DEFAULTS[key];
@@ -137,6 +155,8 @@ export default function App() {
   const [extraPilots, setExtraPilots] = useState<number | ''>(() => loadSaved('extraPilots'));
   const [extraCabinCrew, setExtraCabinCrew] = useState<number | ''>(() => loadSaved('extraCabinCrew'));
   const [fuelCapacityKg, setFuelCapacityKg] = useState<number | ''>(() => loadSaved('fuelCapacityKg'));
+  const [aircraftType, setAircraftType] = useState<'NG' | 'MAX'>(() => loadSaved('aircraftType'));
+  const [cabinPosition, setCabinPosition] = useState<'FWD' | 'AFT'>(() => loadSaved('cabinPosition'));
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('b737_wb_darkMode');
     if (saved !== null) return saved === 'true';
@@ -157,7 +177,7 @@ export default function App() {
   // Save to localStorage whenever values change
   useEffect(() => {
     try {
-      const state = { dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg };
+      const state = { dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg, aircraftType, cabinPosition };
       localStorage.setItem('b737_wb_state_v2', JSON.stringify(state));
       
       // Update last saved timestamp to show indicator
@@ -165,7 +185,7 @@ export default function App() {
     } catch (e) {
       console.warn('Failed to save state:', e);
     }
-  }, [dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg]);
+  }, [dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg, aircraftType, cabinPosition]);
 
   // Auto-calculate contingency fuel (5% of trip fuel)
   useEffect(() => {
@@ -187,6 +207,8 @@ export default function App() {
     setExtraPilots(DEFAULTS.extraPilots);
     setExtraCabinCrew(DEFAULTS.extraCabinCrew);
     setFuelCapacityKg(DEFAULTS.fuelCapacityKg);
+    setAircraftType(DEFAULTS.aircraftType);
+    setCabinPosition(DEFAULTS.cabinPosition);
   };
 
   const results = useMemo((): CalculationResults => {
@@ -204,9 +226,13 @@ export default function App() {
 
     const dowCorrected = nDow + (nExtraPilots * PILOT_WEIGHT) + (nExtraCabinCrew * CABIN_CREW_WEIGHT);
     
-    // Calculate Corrected DOI based on extra crew positions
-    const pilotIndexVar = (nExtraPilots >= 1 ? INDEX_VAR_PILOT_1ST_OBS : 0) + (nExtraPilots >= 2 ? INDEX_VAR_PILOT_2ND_OBS : 0);
-    const cabinIndexVar = nExtraCabinCrew * INDEX_VAR_CABIN_EXTRA;
+    // Calculate Corrected DOI based on aircraft type and crew positions
+    const vars = INDEX_VARS[aircraftType];
+    const pilotIndexVar = (nExtraPilots >= 1 ? vars.PILOT_1ST_OBS : 0) + (nExtraPilots >= 2 ? vars.PILOT_2ND_OBS : 0);
+    
+    const cabinVar = cabinPosition === 'FWD' ? vars.CABIN_FWD : vars.CABIN_AFT;
+    const cabinIndexVar = nExtraCabinCrew * cabinVar;
+    
     const doiCorrected = nDoi + pilotIndexVar + cabinIndexVar;
 
     const zfw = dowCorrected + nPayload;
@@ -561,39 +587,71 @@ export default function App() {
                 <Users className="w-5 h-5 text-red-600" />
                 <h2 className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Crew Adjustments</h2>
               </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputGroup 
-                  label="Extra Pilots" 
-                  value={extraPilots} 
-                  onChange={setExtraPilots} 
-                  unit="pers" 
-                  description="Above 2 pilots"
-                  min={0}
-                  isDarkMode={isDarkMode}
-                />
-                <InputGroup 
-                  label="Extra Cabin Crew" 
-                  value={extraCabinCrew} 
-                  onChange={setExtraCabinCrew} 
-                  unit="pers" 
-                  description="Above 4 crew"
-                  min={0}
-                  isDarkMode={isDarkMode}
-                />
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Aircraft Type Toggle */}
+                  <div className="space-y-2">
+                    <label className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Aircraft Type</label>
+                    <div className={`flex p-1 rounded-lg ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                      <button 
+                        onClick={() => setAircraftType('NG')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${aircraftType === 'NG' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                      >NG</button>
+                      <button 
+                        onClick={() => setAircraftType('MAX')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${aircraftType === 'MAX' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                      >MAX</button>
+                    </div>
+                  </div>
+
+                  {/* Cabin Position Toggle */}
+                  <div className="space-y-2">
+                    <label className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Cabin Crew Position</label>
+                    <div className={`flex p-1 rounded-lg ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                      <button 
+                        onClick={() => setCabinPosition('FWD')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${cabinPosition === 'FWD' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                      >FWD</button>
+                      <button 
+                        onClick={() => setCabinPosition('AFT')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${cabinPosition === 'AFT' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                      >AFT</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputGroup 
+                    label="Extra Pilots" 
+                    value={extraPilots} 
+                    onChange={setExtraPilots} 
+                    unit="pers" 
+                    description="Above 2 pilots"
+                    isDarkMode={isDarkMode}
+                  />
+                  <InputGroup 
+                    label="Extra Cabin Crew" 
+                    value={extraCabinCrew} 
+                    onChange={setExtraCabinCrew} 
+                    unit="pers" 
+                    description="Above 4 crew"
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
               </div>
               <div className={`px-6 py-3 border-t ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                 <div className={`text-[10px] grid grid-cols-2 gap-x-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   <div>
-                    <span className={`font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Pilot Variations:</span>
+                    <span className={`font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Pilot Variations ({aircraftType}):</span>
                     <ul className="list-disc list-inside ml-1">
-                      <li>1st Obs: {INDEX_VAR_PILOT_1ST_OBS}</li>
-                      <li>2nd Obs: {INDEX_VAR_PILOT_2ND_OBS}</li>
+                      <li>1st Obs: {INDEX_VARS[aircraftType].PILOT_1ST_OBS}</li>
+                      <li>2nd Obs: {INDEX_VARS[aircraftType].PILOT_2ND_OBS}</li>
                     </ul>
                   </div>
                   <div>
-                    <span className={`font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Cabin Variations:</span>
+                    <span className={`font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Cabin Variations ({aircraftType}):</span>
                     <ul className="list-disc list-inside ml-1">
-                      <li>Extra Crew: +{INDEX_VAR_CABIN_EXTRA} (Aft)</li>
+                      <li>{cabinPosition} Position: {cabinPosition === 'FWD' ? INDEX_VARS[aircraftType].CABIN_FWD : INDEX_VARS[aircraftType].CABIN_AFT}</li>
                     </ul>
                   </div>
                 </div>
