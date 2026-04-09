@@ -103,6 +103,14 @@ export default function App() {
   // Helper to load from localStorage
   const loadSaved = (key: keyof typeof DEFAULTS) => {
     try {
+      // Try new unified state first
+      const unified = localStorage.getItem('b737_wb_state_v2');
+      if (unified) {
+        const parsed = JSON.parse(unified);
+        if (parsed[key] !== undefined) return Number(parsed[key]);
+      }
+
+      // Fallback to old individual keys
       const saved = localStorage.getItem(`b737_wb_${key}`);
       if (saved === null) return DEFAULTS[key];
       const num = Number(saved);
@@ -132,6 +140,7 @@ export default function App() {
     if (saved !== null) return saved === 'true';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+  const [lastSaved, setLastSaved] = useState<number>(0);
 
   // Apply dark mode class
   useEffect(() => {
@@ -145,10 +154,15 @@ export default function App() {
 
   // Save to localStorage whenever values change
   useEffect(() => {
-    const state = { dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg };
-    Object.entries(state).forEach(([key, value]) => {
-      localStorage.setItem(`b737_wb_${key}`, value.toString());
-    });
+    try {
+      const state = { dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg };
+      localStorage.setItem('b737_wb_state_v2', JSON.stringify(state));
+      
+      // Update last saved timestamp to show indicator
+      setLastSaved(Date.now());
+    } catch (e) {
+      console.warn('Failed to save state:', e);
+    }
   }, [dow, doi, mtow, mlw, mzfw, payload, tof, tripFuel, contingencyFuel, alternateFuel, extraPilots, extraCabinCrew, fuelCapacityKg]);
 
   // Auto-calculate contingency fuel (5% of trip fuel)
@@ -344,6 +358,20 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <AnimatePresence>
+              {lastSaved > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  key={lastSaved}
+                  className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider"
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  Saved
+                </motion.div>
+              )}
+            </AnimatePresence>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={`flex items-center justify-center p-2 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
