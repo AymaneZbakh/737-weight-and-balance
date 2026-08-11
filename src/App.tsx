@@ -395,7 +395,8 @@ export default function App() {
     const nExtraPilots = Number(extraPilots) || 0;
     const nExtraCabinCrew = Number(extraCabinCrew) || 0;
 
-    const owCorrected = results.dowCorrected;
+    // OW (Operating Weight) = corrected DOW + Take-Off Fuel
+    const owCorrected = results.dowCorrected + nTof;
     const diCorrected = results.doiCorrected.toFixed(2);
     const zfw = results.zfw;
 
@@ -406,9 +407,9 @@ export default function App() {
     const lu = Math.min(results.limitWeights.byMTOW, results.limitWeights.byMLW, results.limitWeights.byMZFW);
     const luLabel = results.limitingFactor;
 
-    // Maximum Payload formula, always LU - OW - TOF
+    // Maximum Payload formula: since OW already includes TOF, this is simply LU - OW
     const maxPay = results.maxPayload;
-    const maxPayFormula = `LU - OW - TOF = ${lu.toLocaleString()} - ${owCorrected.toLocaleString()} - ${nTof.toLocaleString()}`;
+    const maxPayFormula = `LU - OW = ${lu.toLocaleString()} - ${owCorrected.toLocaleString()}`;
 
     // Maxi fuel: the binding constraint among tank capacity, MTOW, and MLW
     const fuelOptions = [
@@ -435,6 +436,9 @@ export default function App() {
 
     const summaryText = `==================================================
         B737 WEIGHT & BALANCE FLIGHT SUMMARY
+                 ROYAL AIR MAROC
+==================================================
+Date/Time:      ${new Date().toLocaleString()}
 Aircraft Type:  ${aircraftType}
 
 CONFIGURATION (${configStr})        DOW = ${kg(nDow)}   DOI = ${nDoi}
@@ -444,8 +448,8 @@ OW  = ${kg(owCorrected)}
 ZFW = ${kg(zfw)}
 --------------------------------------------------
 MTOW = ${kg(nMtow)}
-MLW  = ${kg(nMlw)}   + Trip = ${kg(nTripFuel)}
-MZFW = ${kg(nMzfw)}   + TOF = ${kg(nTof)}
+MLW  = ${kg(nMlw)}   + Trip fuel = ${kg(nTripFuel)}
+MZFW = ${kg(nMzfw)}   + T/O fuel = ${kg(nTof)}
 --------------------------------------------------
 LU = ${kg(lu)}   (${luLabel})
 --------------------------------------------------
