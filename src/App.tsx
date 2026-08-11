@@ -384,36 +384,75 @@ export default function App() {
   };
 
   const exportSummary = () => {
-    const dCorrected = results.dowCorrected;
-    const diCorrected = results.doiCorrected.toFixed(2);
+    const nDow = Number(dow) || 0;
+    const nDoi = Number(doi) || 0;
+    const nPayload = Number(payload) || 0;
+    const nTof = Number(tof) || 0;
+    const nTripFuel = Number(tripFuel) || 0;
     const nMtow = Number(mtow) || 0;
     const nMlw = Number(mlw) || 0;
     const nMzfw = Number(mzfw) || 0;
+    const nExtraPilots = Number(extraPilots) || 0;
+    const nExtraCabinCrew = Number(extraCabinCrew) || 0;
+
+    const owCorrected = results.dowCorrected;
+    const diCorrected = results.doiCorrected.toFixed(2);
+    const zfw = results.zfw;
+
+    // Configuration string, e.g. "2/4" (2 pilots + 4 cabin crew) or "2/5" with an extra cabin crew
+    const configStr = `${2 + nExtraPilots}/${4 + nExtraCabinCrew}`;
+
+    // LU = the effective max takeoff weight for this flight, and which limit produced it
+    const lu = Math.min(results.limitWeights.byMTOW, results.limitWeights.byMLW, results.limitWeights.byMZFW);
+    const luLabel = results.limitingFactor;
+
+    // Maximum Payload formula, always LU - OW - TOF
     const maxPay = results.maxPayload;
-    const maxFlStr = results.maxFuelWeight;
+    const maxPayFormula = `LU - OW - TOF = ${lu.toLocaleString()} - ${owCorrected.toLocaleString()} - ${nTof.toLocaleString()}`;
+
+    // Maxi fuel: the binding constraint among tank capacity, MTOW, and MLW
+    const fuelOptions = [
+      {
+        label: 'Tank Capacity',
+        value: results.maxFuelWeight,
+        formula: `Fuel Capacity = ${results.maxFuelWeight.toLocaleString()}`,
+      },
+      {
+        label: 'MTOW',
+        value: results.flightMaxFuelByMTOW,
+        formula: `MTOW - ZFW = ${nMtow.toLocaleString()} - ${zfw.toLocaleString()}`,
+      },
+      {
+        label: 'MLW',
+        value: results.flightMaxFuelByMLW,
+        formula: `MLW + Trip Fuel - ZFW = ${nMlw.toLocaleString()} + ${nTripFuel.toLocaleString()} - ${zfw.toLocaleString()}`,
+      },
+    ];
+    const bindingFuel = fuelOptions.reduce((a, b) => (b.value < a.value ? b : a));
     const maxFlFlt = results.flightMaxFuel;
+
+    const kg = (n: number) => `${n.toLocaleString()} kg`;
 
     const summaryText = `==================================================
         B737 WEIGHT & BALANCE FLIGHT SUMMARY
-                 ROYAL AIR MAROC
-==================================================
-Date/Time:      ${new Date().toLocaleString()}
 Aircraft Type:  ${aircraftType}
-Crew Layout:    Pilots: 2 + ${extraPilots || 0} | Cabin: 4 + ${extraCabinCrew || 0} (${cabinPosition})
+
+CONFIGURATION (${configStr})        DOW = ${kg(nDow)}   DOI = ${nDoi}
 --------------------------------------------------
-DOW Corrected:  ${dCorrected.toLocaleString()} kg
-DOI Corrected:  ${diCorrected} units
+PL  = ${kg(nPayload)}
+OW  = ${kg(owCorrected)}
+ZFW = ${kg(zfw)}
 --------------------------------------------------
-STRUCTURAL LIMITS:
-MTOW:           ${nMtow.toLocaleString()} kg
-MLW:            ${nMlw.toLocaleString()} kg
-MZFW:           ${nMzfw.toLocaleString()} kg
+MTOW = ${kg(nMtow)}
+MLW  = ${kg(nMlw)}   + Trip = ${kg(nTripFuel)}
+MZFW = ${kg(nMzfw)}   + TOF = ${kg(nTof)}
 --------------------------------------------------
-CALCULATED PERFORMANCE & CAPACITY:
-Max Payload:    ${maxPay.toLocaleString()} kg
-Max Fuel (Str): ${maxFlStr.toLocaleString()} kg
-Max Fuel (Flt): ${maxFlFlt.toLocaleString()} kg
-==================================================`;
+LU = ${kg(lu)}   (${luLabel})
+--------------------------------------------------
+Maximum Payload = ${kg(maxPay)}   (${maxPayFormula})
+Maxi fuel       = ${kg(maxFlFlt)}   (${bindingFuel.label} limiting: ${bindingFuel.formula})
+==================================================
+(DOW/DOI shown here are corrected for extra crew: OW = DOW + crew, DOI corrected = ${diCorrected})`;
 
     // 1. Download as TXT File
     const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
