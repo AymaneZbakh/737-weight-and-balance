@@ -384,8 +384,6 @@ export default function App() {
   };
 
   const exportSummary = () => {
-    const nDow = Number(dow) || 0;
-    const nDoi = Number(doi) || 0;
     const nPayload = Number(payload) || 0;
     const nTof = Number(tof) || 0;
     const nTripFuel = Number(tripFuel) || 0;
@@ -441,7 +439,7 @@ export default function App() {
 Date/Time:      ${new Date().toLocaleString()}
 Aircraft Type:  ${aircraftType}
 
-CONFIGURATION (${configStr})        DOW = ${kg(nDow)}   DOI = ${nDoi}
+CONFIGURATION (${configStr})        DOW = ${kg(results.dowCorrected)}   DOI = ${diCorrected}
 --------------------------------------------------
 PL  = ${kg(nPayload)}
 OW  = ${kg(owCorrected)}
@@ -455,8 +453,7 @@ LU = ${kg(lu)}   (${luLabel})
 --------------------------------------------------
 Maximum Payload = ${kg(maxPay)}   (${maxPayFormula})
 Maxi fuel       = ${kg(maxFlFlt)}   (${bindingFuel.label} limiting: ${bindingFuel.formula})
-==================================================
-(DOW/DOI shown here are corrected for extra crew: OW = DOW + crew, DOI corrected = ${diCorrected})`;
+==================================================`;
 
     // 1. Download as TXT File
     const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
