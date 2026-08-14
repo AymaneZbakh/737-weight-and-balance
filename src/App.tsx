@@ -432,11 +432,8 @@ export default function App() {
 
     const kg = (n: number) => `${n.toLocaleString()} kg`;
 
-    const summaryText = `==================================================
-        B737 WEIGHT & BALANCE FLIGHT SUMMARY
-                 ROYAL AIR MAROC
-==================================================
-Date/Time:      ${new Date().toLocaleString()}
+    const summaryText = `
+AT
 Aircraft Type:  ${aircraftType}
 
 CONFIGURATION (${configStr})        DOW = ${kg(results.dowCorrected)}   DOI = ${diCorrected}
